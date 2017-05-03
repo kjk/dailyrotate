@@ -16,14 +16,17 @@ type File struct {
 	day      int
 	path     string
 	file     *os.File
-	onRotate func(path string)
+	onRotate func(path string, didRotate bool)
 }
 
-func (f *File) close() error {
-	var err error
-	if f.file != nil {
-		err = f.file.Close()
-		f.file = nil
+func (f *File) close(didRotate bool) error {
+	if f.file == nil {
+		return nil
+	}
+	err := f.file.Close()
+	f.file = nil
+	if f.onRotate != nil && err != nil {
+		f.onRotate(f.path, didRotate)
 	}
 	return err
 }
@@ -51,18 +54,15 @@ func (f *File) reopenIfNeeded() error {
 	if t.YearDay() == f.day {
 		return nil
 	}
-	err := f.close()
+	err := f.close(true)
 	if err != nil {
 		return err
-	}
-	if f.onRotate != nil {
-		f.onRotate(f.path)
 	}
 	return f.open()
 }
 
 // NewFile opens a new log file (creates if doesn't exist, will append if exists)
-func NewFile(pathFormat string, onRotate func(path string)) (*File, error) {
+func NewFile(pathFormat string, onRotate func(path string, didRotate bool)) (*File, error) {
 	res := &File{
 		pathFormat: pathFormat,
 		onRotate:   onRotate,
@@ -77,7 +77,7 @@ func NewFile(pathFormat string, onRotate func(path string)) (*File, error) {
 func (f *File) Close() error {
 	f.Lock()
 	defer f.Unlock()
-	return f.close()
+	return f.close(false)
 }
 
 // Write writes data to a file
