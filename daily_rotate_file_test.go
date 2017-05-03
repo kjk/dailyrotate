@@ -1,6 +1,7 @@
 package log
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,12 +15,12 @@ func TestBasic(t *testing.T) {
 	err := os.RemoveAll("test_dir")
 	assert.Nil(t, err)
 	pathFormat := filepath.Join("test_dir", "second", "2006-01-02.txt")
-	pathExp := time.Now().Format(pathFormat)
-	f, err := NewDailyRotateFile(pathFormat)
+	pathExp := time.Now().UTC().Format(pathFormat)
+	f, err := NewFile(pathFormat, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, f)
 	assert.Equal(t, pathExp, f.path)
-	n, err := f.WriteString("hello\n")
+	n, err := io.WriteString(f, "hello\n")
 	assert.Nil(t, err)
 	assert.Equal(t, n, 6)
 	n, err = f.Write([]byte("bar\n"))

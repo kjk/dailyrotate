@@ -1,8 +1,6 @@
 package log
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -15,9 +13,10 @@ type File struct {
 	pathFormat string
 
 	// info about currently opened file
-	day  int
-	path string
-	file *os.File
+	day      int
+	path     string
+	file     *os.File
+	onRotate func(path string)
 }
 
 func (f *File) close() error {
@@ -30,7 +29,7 @@ func (f *File) close() error {
 }
 
 func (f *File) open() error {
-	t := time.Now()
+	t := time.Now().UTC()
 	f.path = t.Format(f.pathFormat)
 	f.day = t.YearDay()
 
@@ -48,7 +47,7 @@ func (f *File) open() error {
 
 // rotate on new day
 func (f *File) reopenIfNeeded() error {
-	t := time.Now()
+	t := time.Now().UTC()
 	if t.YearDay() == f.day {
 		return nil
 	}
@@ -56,13 +55,17 @@ func (f *File) reopenIfNeeded() error {
 	if err != nil {
 		return err
 	}
+	if f.onRotate != nil {
+		f.onRotate(f.path)
+	}
 	return f.open()
 }
 
-// NewDailyRotateFile opens a new log file (creates if doesn't exist, will append if exists)
-func NewDailyRotateFile(pathFormat string) (*File, error) {
+// NewFile opens a new log file (creates if doesn't exist, will append if exists)
+func NewFile(pathFormat string, onRotate func(path string)) (*File, error) {
 	res := &File{
 		pathFormat: pathFormat,
+		onRotate:   onRotate,
 	}
 	if err := res.open(); err != nil {
 		return nil, err
@@ -72,20 +75,13 @@ func NewDailyRotateFile(pathFormat string) (*File, error) {
 
 // Close closes the file
 func (f *File) Close() error {
-	var err error
-	if f != nil {
-		f.Lock()
-		err = f.close()
-		f.Unlock()
-	}
-	return err
+	f.Lock()
+	defer f.Unlock()
+	return f.close()
 }
 
 // Write writes data to a file
 func (f *File) Write(d []byte) (int, error) {
-	if f == nil {
-		return 0, errors.New("File not opened")
-	}
 	f.Lock()
 	defer f.Unlock()
 	err := f.reopenIfNeeded()
@@ -100,14 +96,4 @@ func (f *File) Flush() error {
 	f.Lock()
 	defer f.Unlock()
 	return f.file.Sync()
-}
-
-// WriteString writes a string to a file
-func (f *File) WriteString(s string) (int, error) {
-	return f.Write([]byte(s))
-}
-
-// Printf formats and writes to the file
-func (f *File) Printf(format string, arg ...interface{}) {
-	f.WriteString(fmt.Sprintf(format, arg...))
 }
