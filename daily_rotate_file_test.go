@@ -1,4 +1,4 @@
-package log
+package dailyrotate
 
 import (
 	"io"
