@@ -14,10 +14,10 @@ type File struct {
 	pathFormat string
 
 	// info about currently opened file
-	day      int
-	path     string
-	file     *os.File
-	onRotate func(path string, didRotate bool)
+	day     int
+	path    string
+	file    *os.File
+	onClose func(path string, didRotate bool)
 
 	// for tests only
 	lastWriteCurrPos int64
@@ -29,8 +29,8 @@ func (f *File) close(didRotate bool) error {
 	}
 	err := f.file.Close()
 	f.file = nil
-	if f.onRotate != nil && err != nil {
-		f.onRotate(f.path, didRotate)
+	if f.onClose != nil && err != nil {
+		f.onClose(f.path, didRotate)
 	}
 	f.day = 0
 	return err
@@ -71,11 +71,16 @@ func (f *File) reopenIfNeeded() error {
 	return f.open()
 }
 
-// NewFile opens a new log file (creates if doesn't exist, will append if exists)
-func NewFile(pathFormat string, onRotate func(path string, didRotate bool)) *File {
+// NewFile creates a new file that will be rotated daily (at UTC midnight).
+// pathFormat is file format accepted by time.Format that will be used to generate
+// a name of the file. It should be unique in a given day e.g. 2006-01-02.txt.
+// onClose is an optional function that will be called every time existing file
+// is closed, either as a result calling Close or due to being rotated.
+// didRotate will be true if it was closed due to rotation.
+func NewFile(pathFormat string, onClose func(path string, didRotate bool)) *File {
 	return &File{
 		pathFormat: pathFormat,
-		onRotate:   onRotate,
+		onClose:    onClose,
 	}
 }
 
