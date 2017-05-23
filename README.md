@@ -9,10 +9,10 @@ and rotates daily (according to UTC() time).
 
 ```go
 pathFormat := filepath.Join("dir", "2006-01-02.txt")
-func onRotate(path string, didRotate bool) {
+func onClose(path string, didRotate bool) {
   fmt.Printf("we just closed a file '%s', didRotate: %v\n", path, didRotate)
 }
-w, err := dailyrotate.NewFile(pathFormat, onRotate)
+w, err := dailyrotate.NewFile(pathFormat, onClose)
 panicIfErr(err)
 _, err = io.WriteString(w, "hello\n")
 panicIfErr(err)
