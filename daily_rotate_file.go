@@ -1,3 +1,11 @@
+// Package dailyrotate provides a file that is rotated daily (at midnight UTC).
+//
+// You provide a pattern for a file path. That pattern will be formatted with
+// time.Format to generate a real path. It should be unique for each day e.g.
+// 2006-01-02.txt.
+//
+// You Write to a file and the code takes care of closing existing file and
+// opening a new file when we're crossing daily boundaries.
 package dailyrotate
 
 import (
@@ -77,11 +85,25 @@ func (f *File) reopenIfNeeded() error {
 // onClose is an optional function that will be called every time existing file
 // is closed, either as a result calling Close or due to being rotated.
 // didRotate will be true if it was closed due to rotation.
-func NewFile(pathFormat string, onClose func(path string, didRotate bool)) *File {
-	return &File{
+// If you're doing something expensive in onClose(), you should do it in a
+// background goroutine or else you'll block the writes for a long time.
+func NewFile(pathFormat string, onClose func(path string, didRotate bool)) (*File, error) {
+	f := &File{
 		pathFormat: pathFormat,
-		onClose:    onClose,
 	}
+	// force early failure if we can't open the file
+	// note that we don't set onClose yet so that it won't get called due to
+	// opening/closing the file
+	err := f.reopenIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+	err = f.close(false)
+	if err != nil {
+		return nil, err
+	}
+	f.onClose = onClose
+	return f, nil
 }
 
 // Close closes the file
