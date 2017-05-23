@@ -24,7 +24,7 @@ Given that files are rotated daily, you need to provide
 a file name format which will be passed to time.Now().UTC().Format()
 function. It should produce a unique file name each day.
 
-You can also provide `onRotate` function which will be called
-when the file is close (either because of rotation or regular Close()).
+You can also provide `onClose` function which will be called
+when the file is close (either because of rotation or calling Close()).
 
 You can use that to e.g. backup the rotated file to backblaze.
