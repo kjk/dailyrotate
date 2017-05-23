@@ -85,8 +85,8 @@ func (f *File) reopenIfNeeded() error {
 // onClose is an optional function that will be called every time existing file
 // is closed, either as a result calling Close or due to being rotated.
 // didRotate will be true if it was closed due to rotation.
-// If you're doing something expensive in onClose(), you should do it in a
-// background goroutine or else you'll block the writes for a long time.
+// If onClose() takes a long time, you should do it in a background goroutine
+// (it blocks all other operations, including writes)
 func NewFile(pathFormat string, onClose func(path string, didRotate bool)) (*File, error) {
 	f := &File{
 		pathFormat: pathFormat,
