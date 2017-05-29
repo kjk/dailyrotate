@@ -27,8 +27,8 @@ type File struct {
 	file    *os.File
 	onClose func(path string, didRotate bool)
 
-	// for tests only
-	lastWriteCurrPos int64
+	// position in the file of last Write or Write2, exposed for tests
+	lastWritePos int64
 }
 
 func (f *File) close(didRotate bool) error {
@@ -37,7 +37,7 @@ func (f *File) close(didRotate bool) error {
 	}
 	err := f.file.Close()
 	f.file = nil
-	if f.onClose != nil && err != nil {
+	if err == nil && f.onClose != nil {
 		f.onClose(f.path, didRotate)
 	}
 	f.day = 0
@@ -118,7 +118,7 @@ func (f *File) write(d []byte, flush bool) (int64, int, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	f.lastWriteCurrPos, err = f.file.Seek(0, io.SeekCurrent)
+	f.lastWritePos, err = f.file.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -129,7 +129,7 @@ func (f *File) write(d []byte, flush bool) (int64, int, error) {
 	if flush {
 		err = f.file.Sync()
 	}
-	return f.lastWriteCurrPos, n, err
+	return f.lastWritePos, n, err
 }
 
 // Write writes data to a file
@@ -146,8 +146,8 @@ func (f *File) Write(d []byte) (int, error) {
 func (f *File) Write2(d []byte, flush bool) (string, int64, int, error) {
 	f.Lock()
 	defer f.Unlock()
-	currPos, n, err := f.write(d, flush)
-	return f.path, currPos, n, err
+	writtenAtPos, n, err := f.write(d, flush)
+	return f.path, writtenAtPos, n, err
 }
 
 // Flush flushes the file
