@@ -60,3 +60,24 @@ func TestBasic(t *testing.T) {
 	err = os.RemoveAll("test_dir")
 	assert.Nil(t, err)
 }
+
+func TestBasic_Location(t *testing.T) {
+	err := os.RemoveAll("test_dir")
+	assert.Nil(t, err)
+
+	loc := time.FixedZone("UTC-8", -8*60*60)
+	pathFormat := filepath.Join("test_dir", "third", "2006-01-02.txt")
+	pathExp := time.Now().In(loc).Format(pathFormat)
+	f, err := NewFile(pathFormat, nil)
+	assert.Nil(t, err)
+	f.Location = loc
+	assert.Equal(t, loc, f.Location)
+
+	n, err := io.WriteString(f, "hello\n")
+	assert.Nil(t, err)
+	assert.Equal(t, 0, int(f.lastWritePos))
+	assert.Equal(t, n, 6)
+	assert.Equal(t, pathExp, f.path)
+	err = os.RemoveAll("test_dir")
+	assert.Nil(t, err)
+}
