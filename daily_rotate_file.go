@@ -1,4 +1,4 @@
-// Package dailyrotate provides a file that is rotated daily (at midnight UTC).
+// Package dailyrotate provides a file that is rotated daily (at midnight in specified location).
 //
 // You provide a pattern for a file path. That pattern will be formatted with
 // time.Format to generate a real path. It should be unique for each day e.g.
@@ -20,6 +20,7 @@ import (
 type File struct {
 	sync.Mutex
 	pathFormat string
+	Location   *time.Location
 
 	// info about currently opened file
 	day     int
@@ -45,7 +46,7 @@ func (f *File) close(didRotate bool) error {
 }
 
 func (f *File) open() error {
-	t := time.Now().UTC()
+	t := time.Now().In(f.Location)
 	f.path = t.Format(f.pathFormat)
 	f.day = t.YearDay()
 
@@ -68,7 +69,7 @@ func (f *File) open() error {
 
 // rotate on new day
 func (f *File) reopenIfNeeded() error {
-	t := time.Now().UTC()
+	t := time.Now().In(f.Location)
 	if t.YearDay() == f.day {
 		return nil
 	}
@@ -79,7 +80,7 @@ func (f *File) reopenIfNeeded() error {
 	return f.open()
 }
 
-// NewFile creates a new file that will be rotated daily (at UTC midnight).
+// NewFile creates a new file that will be rotated daily (at midnight in specified location).
 // pathFormat is file format accepted by time.Format that will be used to generate
 // a name of the file. It should be unique in a given day e.g. 2006-01-02.txt.
 // onClose is an optional function that will be called every time existing file
@@ -90,6 +91,7 @@ func (f *File) reopenIfNeeded() error {
 func NewFile(pathFormat string, onClose func(path string, didRotate bool)) (*File, error) {
 	f := &File{
 		pathFormat: pathFormat,
+		Location:   time.UTC,
 	}
 	// force early failure if we can't open the file
 	// note that we don't set onClose yet so that it won't get called due to
