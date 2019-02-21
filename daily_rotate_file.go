@@ -19,8 +19,14 @@ import (
 // File describes a file that gets rotated daily
 type File struct {
 	sync.Mutex
-	pathFormat string
-	Location   *time.Location
+
+	// pathGenerator and pathFormat are 2 ways for generating
+	// a name of the file when we need to rotate
+	// only one of them should be set
+	pathGenerator func(time.Time) string
+	pathFormat    string
+
+	Location *time.Location
 
 	// info about currently opened file
 	day     int
@@ -47,7 +53,11 @@ func (f *File) close(didRotate bool) error {
 
 func (f *File) open() error {
 	t := time.Now().In(f.Location)
-	f.path = t.Format(f.pathFormat)
+	if f.pathGenerator != nil {
+		f.path = f.pathGenerator(t)
+	} else {
+		f.path = t.Format(f.pathFormat)
+	}
 	f.day = t.YearDay()
 
 	// we can't assume that the dir for the file already exists
@@ -83,15 +93,39 @@ func (f *File) reopenIfNeeded() error {
 // NewFile creates a new file that will be rotated daily (at midnight in specified location).
 // pathFormat is file format accepted by time.Format that will be used to generate
 // a name of the file. It should be unique in a given day e.g. 2006-01-02.txt.
+// If you need more flexibility, use NewFileWithPathGenerator which accepts a
+// function that generates a file path.
 // onClose is an optional function that will be called every time existing file
 // is closed, either as a result calling Close or due to being rotated.
 // didRotate will be true if it was closed due to rotation.
 // If onClose() takes a long time, you should do it in a background goroutine
 // (it blocks all other operations, including writes)
+// Warning: time.Format might format more than you expect e.g.
+// time.Now().Format(`/logs/dir-2/2006-01-02.txt`) will change "-2" in "dir-2" to
+// current day. For better control over path generation, use NewFileWithPathGenerator
 func NewFile(pathFormat string, onClose func(path string, didRotate bool)) (*File, error) {
+	return newFile(pathFormat, nil, onClose)
+}
+
+// NewFileWithPathGenerator creates a new file that will be rotated daily
+// (at midnight in timezone specified by in specified location).
+// pathGenerator is a function that will return a path for a daily log file.
+// It should be unique in a given day e.g. time.Format of "2006-01-02.txt"
+// creates a string unique for the day.
+// onClose is an optional function that will be called every time existing file
+// is closed, either as a result calling Close or due to being rotated.
+// didRotate will be true if it was closed due to rotation.
+// If onClose() takes a long time, you should do it in a background goroutine
+// (it blocks all other operations, including writes)
+func NewFileWithPathGenerator(pathGenerator func(time.Time) string, onClose func(path string, didRotate bool)) (*File, error) {
+	return newFile("", pathGenerator, onClose)
+}
+
+func newFile(pathFormat string, pathGenerator func(time.Time) string, onClose func(path string, didRotate bool)) (*File, error) {
 	f := &File{
-		pathFormat: pathFormat,
-		Location:   time.UTC,
+		pathFormat:    pathFormat,
+		pathGenerator: pathGenerator,
+		Location:      time.UTC,
 	}
 	// force early failure if we can't open the file
 	// note that we don't set onClose yet so that it won't get called due to
