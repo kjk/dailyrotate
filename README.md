@@ -1,6 +1,8 @@
 # dailyrotate
 
-Go library for a file whose that rotates daily.
+When logging to a file, you often want to rotate files daily i.e. create a new log file for each new day.
+
+This Go package makes it easy. You specify the pattern for file name and the rest is handled by the library.
 
 ## Usage
 
