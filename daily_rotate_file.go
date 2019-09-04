@@ -51,6 +51,13 @@ func (f *File) close(didRotate bool) error {
 	return err
 }
 
+// Path returns full path of the file we're currently writing to
+func (f *File) Path() string {
+	f.Lock()
+	defer f.Unlock()
+	return f.path
+}
+
 func (f *File) open() error {
 	t := time.Now().In(f.Location)
 	if f.pathGenerator != nil {
