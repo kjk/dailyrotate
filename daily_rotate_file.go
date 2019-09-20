@@ -6,6 +6,8 @@
 //
 // You Write to a file and the code takes care of closing existing file and
 // opening a new file when we're crossing daily boundaries.
+//
+// For a full tutorial see https://presstige.io/p/dailyrotate-a-Go-library-for-rotating-files-daily-6fb283a94e604f879e0d97a5f788dee6
 package dailyrotate
 
 import (
