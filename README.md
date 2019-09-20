@@ -1,4 +1,4 @@
-`dailyrotate` is a Go package for rotating (log files) daily.
+`dailyrotate` is a Go package for rotating (log) files daily.
 
 Documentation:
 
