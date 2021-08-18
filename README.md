@@ -2,6 +2,6 @@
 
 Documentation:
 
-* [tutorial](https://presstige.io/p/dailyrotate-a-Go-library-for-rotating-files-daily-6fb283a94e604f879e0d97a5f788dee6)
-* [api docs](https://godoc.org/github.com/kjk/dailyrotate) in godoc
+* tutorial: https://blog.kowalczyk.info/article/6725311d5d03491a9442e1e0819bd901/dailyrotate-a-go-library-for-rotating-files-daily.html
+* api docs: https://pkg.go.dev/github.com/kjk/dailyrotate
 * [example code](/examples)
