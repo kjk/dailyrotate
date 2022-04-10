@@ -1,3 +1,5 @@
+This has moved to https://github.com/kjk/common/tree/main/filerotate
+
 `dailyrotate` is a Go package for rotating (log) files daily.
 
 Documentation:
